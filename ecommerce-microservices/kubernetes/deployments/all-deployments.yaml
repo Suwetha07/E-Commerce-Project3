@@ -1,8 +1,13 @@
-# MongoDB
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopverse
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -20,17 +25,17 @@ spec:
         - containerPort: 27017
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: 50m
+            memory: 128Mi
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: 500m
+            memory: 512Mi
 ---
-# API Gateway
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-gateway
+  namespace: shopverse
 spec:
   replicas: 2
   selector:
@@ -51,17 +56,17 @@ spec:
             name: shopverse-config
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# User Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: user-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -79,7 +84,7 @@ spec:
         - containerPort: 3001
         env:
         - name: PORT
-          value: "3001"
+          value: '3001'
         - name: MONGO_URI
           valueFrom:
             configMapKeyRef:
@@ -87,17 +92,17 @@ spec:
               key: MONGO_URI_USER
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Authentication Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: auth-service
+  namespace: shopverse
 spec:
   replicas: 2
   selector:
@@ -115,9 +120,9 @@ spec:
         - containerPort: 3002
         env:
         - name: PORT
-          value: "3002"
+          value: '3002'
         - name: JWT_SECRET
-          value: "supersecretjwtkey_12345"
+          value: supersecretjwtkey_12345
         - name: MONGO_URI
           valueFrom:
             configMapKeyRef:
@@ -125,17 +130,17 @@ spec:
               key: MONGO_URI_AUTH
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Product Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: product-service
+  namespace: shopverse
 spec:
   replicas: 2
   selector:
@@ -153,7 +158,7 @@ spec:
         - containerPort: 3003
         env:
         - name: PORT
-          value: "3003"
+          value: '3003'
         - name: MONGO_URI
           valueFrom:
             configMapKeyRef:
@@ -161,17 +166,17 @@ spec:
               key: MONGO_URI_PRODUCT
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Search Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: search-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -189,7 +194,7 @@ spec:
         - containerPort: 3004
         env:
         - name: PORT
-          value: "3004"
+          value: '3004'
         - name: PRODUCT_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -202,17 +207,17 @@ spec:
               key: MONGO_URI_SEARCH
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Inventory Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inventory-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -230,7 +235,7 @@ spec:
         - containerPort: 3005
         env:
         - name: PORT
-          value: "3005"
+          value: '3005'
         - name: MONGO_URI
           valueFrom:
             configMapKeyRef:
@@ -238,17 +243,17 @@ spec:
               key: MONGO_URI_INVENTORY
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Cart Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cart-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -266,7 +271,7 @@ spec:
         - containerPort: 3006
         env:
         - name: PORT
-          value: "3006"
+          value: '3006'
         - name: PRODUCT_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -284,17 +289,17 @@ spec:
               key: MONGO_URI_CART
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Wishlist Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wishlist-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -312,7 +317,7 @@ spec:
         - containerPort: 3007
         env:
         - name: PORT
-          value: "3007"
+          value: '3007'
         - name: PRODUCT_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -325,17 +330,17 @@ spec:
               key: MONGO_URI_WISHLIST
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Order Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: order-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -353,7 +358,7 @@ spec:
         - containerPort: 3008
         env:
         - name: PORT
-          value: "3008"
+          value: '3008'
         - name: MONGO_URI
           valueFrom:
             configMapKeyRef:
@@ -361,17 +366,17 @@ spec:
               key: MONGO_URI_ORDER
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Payment Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -389,7 +394,7 @@ spec:
         - containerPort: 3009
         env:
         - name: PORT
-          value: "3009"
+          value: '3009'
         - name: ORDER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -402,17 +407,17 @@ spec:
               key: MONGO_URI_PAYMENT
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Invoice Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: invoice-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -430,7 +435,7 @@ spec:
         - containerPort: 3010
         env:
         - name: PORT
-          value: "3010"
+          value: '3010'
         - name: ORDER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -448,17 +453,17 @@ spec:
               key: MONGO_URI_INVOICE
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Shipping Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: shipping-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -476,7 +481,7 @@ spec:
         - containerPort: 3011
         env:
         - name: PORT
-          value: "3011"
+          value: '3011'
         - name: ORDER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -489,17 +494,17 @@ spec:
               key: MONGO_URI_SHIPPING
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Review Rating Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: review-rating-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -517,7 +522,7 @@ spec:
         - containerPort: 3012
         env:
         - name: PORT
-          value: "3012"
+          value: '3012'
         - name: PRODUCT_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -530,17 +535,17 @@ spec:
               key: MONGO_URI_REVIEW
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Recommendation Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: recommendation-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -558,7 +563,7 @@ spec:
         - containerPort: 3013
         env:
         - name: PORT
-          value: "3013"
+          value: '3013'
         - name: USER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -581,17 +586,17 @@ spec:
               key: MONGO_URI_RECOMMENDATION
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Admin Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: admin-service
+  namespace: shopverse
 spec:
   replicas: 1
   selector:
@@ -609,7 +614,7 @@ spec:
         - containerPort: 3014
         env:
         - name: PORT
-          value: "3014"
+          value: '3014'
         - name: USER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -642,17 +647,17 @@ spec:
               key: MONGO_URI_ADMIN
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi
 ---
-# Frontend UI
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-ui
+  namespace: shopverse
 spec:
   replicas: 2
   selector:
@@ -670,8 +675,8 @@ spec:
         - containerPort: 80
         resources:
           requests:
-            cpu: "10m"
-            memory: "32Mi"
+            cpu: 10m
+            memory: 32Mi
           limits:
-            cpu: "250m"
-            memory: "256Mi"
+            cpu: 250m
+            memory: 256Mi

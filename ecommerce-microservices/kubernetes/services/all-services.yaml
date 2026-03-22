@@ -1,8 +1,8 @@
-# MongoDB Service
 apiVersion: v1
 kind: Service
 metadata:
   name: mongodb
+  namespace: shopverse
 spec:
   selector:
     app: mongodb
@@ -11,11 +11,11 @@ spec:
     targetPort: 27017
   type: ClusterIP
 ---
-# Gateway Service
 apiVersion: v1
 kind: Service
 metadata:
   name: api-gateway
+  namespace: shopverse
 spec:
   selector:
     app: api-gateway
@@ -24,11 +24,11 @@ spec:
     targetPort: 3000
   type: ClusterIP
 ---
-# User Service
 apiVersion: v1
 kind: Service
 metadata:
   name: user-service
+  namespace: shopverse
 spec:
   selector:
     app: user-service
@@ -37,11 +37,11 @@ spec:
     targetPort: 3001
   type: ClusterIP
 ---
-# Auth Service
 apiVersion: v1
 kind: Service
 metadata:
   name: auth-service
+  namespace: shopverse
 spec:
   selector:
     app: auth-service
@@ -50,11 +50,11 @@ spec:
     targetPort: 3002
   type: ClusterIP
 ---
-# Product Service
 apiVersion: v1
 kind: Service
 metadata:
   name: product-service
+  namespace: shopverse
 spec:
   selector:
     app: product-service
@@ -63,11 +63,11 @@ spec:
     targetPort: 3003
   type: ClusterIP
 ---
-# Search Service
 apiVersion: v1
 kind: Service
 metadata:
   name: search-service
+  namespace: shopverse
 spec:
   selector:
     app: search-service
@@ -76,11 +76,11 @@ spec:
     targetPort: 3004
   type: ClusterIP
 ---
-# Inventory Service
 apiVersion: v1
 kind: Service
 metadata:
   name: inventory-service
+  namespace: shopverse
 spec:
   selector:
     app: inventory-service
@@ -89,11 +89,11 @@ spec:
     targetPort: 3005
   type: ClusterIP
 ---
-# Cart Service
 apiVersion: v1
 kind: Service
 metadata:
   name: cart-service
+  namespace: shopverse
 spec:
   selector:
     app: cart-service
@@ -102,11 +102,11 @@ spec:
     targetPort: 3006
   type: ClusterIP
 ---
-# Wishlist Service
 apiVersion: v1
 kind: Service
 metadata:
   name: wishlist-service
+  namespace: shopverse
 spec:
   selector:
     app: wishlist-service
@@ -115,11 +115,11 @@ spec:
     targetPort: 3007
   type: ClusterIP
 ---
-# Order Service
 apiVersion: v1
 kind: Service
 metadata:
   name: order-service
+  namespace: shopverse
 spec:
   selector:
     app: order-service
@@ -128,11 +128,11 @@ spec:
     targetPort: 3008
   type: ClusterIP
 ---
-# Payment Service
 apiVersion: v1
 kind: Service
 metadata:
   name: payment-service
+  namespace: shopverse
 spec:
   selector:
     app: payment-service
@@ -141,11 +141,11 @@ spec:
     targetPort: 3009
   type: ClusterIP
 ---
-# Invoice Service
 apiVersion: v1
 kind: Service
 metadata:
   name: invoice-service
+  namespace: shopverse
 spec:
   selector:
     app: invoice-service
@@ -154,11 +154,11 @@ spec:
     targetPort: 3010
   type: ClusterIP
 ---
-# Shipping Service
 apiVersion: v1
 kind: Service
 metadata:
   name: shipping-service
+  namespace: shopverse
 spec:
   selector:
     app: shipping-service
@@ -167,11 +167,11 @@ spec:
     targetPort: 3011
   type: ClusterIP
 ---
-# Review Rating Service
 apiVersion: v1
 kind: Service
 metadata:
   name: review-rating-service
+  namespace: shopverse
 spec:
   selector:
     app: review-rating-service
@@ -180,11 +180,11 @@ spec:
     targetPort: 3012
   type: ClusterIP
 ---
-# Recommendation Service
 apiVersion: v1
 kind: Service
 metadata:
   name: recommendation-service
+  namespace: shopverse
 spec:
   selector:
     app: recommendation-service
@@ -193,11 +193,11 @@ spec:
     targetPort: 3013
   type: ClusterIP
 ---
-# Admin Service
 apiVersion: v1
 kind: Service
 metadata:
   name: admin-service
+  namespace: shopverse
 spec:
   selector:
     app: admin-service
@@ -206,11 +206,11 @@ spec:
     targetPort: 3014
   type: ClusterIP
 ---
-# Frontend Service (NodePort for external access)
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-ui
+  namespace: shopverse
 spec:
   selector:
     app: frontend-ui

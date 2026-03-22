@@ -2,7 +2,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: ecommerce-gateway
-  namespace: default
+  namespace: shopverse
 spec:
   gatewayClassName: kgateway
   listeners:
@@ -17,12 +17,11 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: frontend-route
-  namespace: default
+  namespace: shopverse
 spec:
   parentRefs:
   - name: ecommerce-gateway
   rules:
-  # API requests → api-gateway service
   - matches:
     - path:
         type: PathPrefix
@@ -30,7 +29,6 @@ spec:
     backendRefs:
     - name: api-gateway
       port: 3000
-  # Everything else → frontend-ui
   - matches:
     - path:
         type: PathPrefix
