@@ -29,8 +29,12 @@ spec:
         volumeMounts:
         - name: mongodata
           mountPath: /data/db
-      volumes:
-      - name: mongodata
-        hostPath:
-          path: /mnt/mongodb-data
-          type: DirectoryOrCreate
+  volumeClaimTemplates:
+  - metadata:
+      name: mongodata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "nfs-client"
+      resources:
+        requests:
+          storage: 1Gi
