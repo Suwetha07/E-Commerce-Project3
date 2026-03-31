@@ -33,7 +33,7 @@ spec:
   - metadata:
       name: mongodata
     spec:
-      accessModes: [ "ReadWriteOnce" ]
+      accessModes: [ "ReadWriteMany" ]
       {{- if .Values.mongodb.persistence.storageClass }}
       storageClassName: {{ .Values.mongodb.persistence.storageClass | quote }}
       {{- end }}
