@@ -86,6 +86,6 @@ mongodb:
     tag: 6.0
   persistence:
     enabled: true
-    storageClass: "local-sc"
-    size: 1Gi
+    storageClass: "csi-standard"
+    size: 5Gi
     createEbsSc: false
