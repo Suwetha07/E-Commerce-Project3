@@ -2,7 +2,7 @@
 kind: ConfigMap
 metadata:
   name: clahanstore-config
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 data:
   MONGO_URI_USER: mongodb://mongodb:27017/userdb
   MONGO_URI_AUTH: mongodb://mongodb:27017/authdb

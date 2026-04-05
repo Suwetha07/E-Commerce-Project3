@@ -1,0 +1,15 @@
+# =============================================
+# FRONTEND SERVICES (Standard ClusterIP)
+# =============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: api-gateway
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP

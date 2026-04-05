@@ -1,6 +1,6 @@
 apiVersion: v2
 name: ecommerce-application
-description: Helm chart for the E-Commerce microservices application
+description: Umbrella Helm chart for the E-Commerce microservices application
 type: application
 version: 0.1.0
 appVersion: "1.0.0"

@@ -1,91 +1,87 @@
-namespace: clahanstore
-apiGateway:
+global:
+  namespace: "clahanstore"
+api-gateway:
   replicas: 2
   image:
-    repository: team4devops/ecommerce-api-gateway
-    tag: v1.0.0
-frontendUi:
+    repository: "team4devops/ecommerce-api-gateway"
+    tag: "v1.0.0"
+frontend-ui:
   replicas: 2
   image:
-    repository: team4devops/ecommerce-frontend-ui
-    tag: v1.0.0
-userService:
+    repository: "team4devops/ecommerce-frontend-ui"
+    tag: "v1.0.0"
+user-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-user-service
-    tag: v1.0.0
-authService:
+    repository: "team4devops/ecommerce-user-service"
+    tag: "v1.0.0"
+auth-service:
   replicas: 2
   image:
-    repository: team4devops/ecommerce-authentication-service
-    tag: v1.0.0
-productService:
+    repository: "team4devops/ecommerce-authentication-service"
+    tag: "v1.0.0"
+product-service:
   replicas: 2
   image:
-    repository: team4devops/ecommerce-product-service
-    tag: v1.0.0
-searchService:
+    repository: "team4devops/ecommerce-product-service"
+    tag: "v1.0.0"
+search-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-search-service
-    tag: v1.0.0
-inventoryService:
+    repository: "team4devops/ecommerce-search-service"
+    tag: "v1.0.0"
+inventory-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-inventory-service
-    tag: v1.0.0
-cartService:
+    repository: "team4devops/ecommerce-inventory-service"
+    tag: "v1.0.0"
+cart-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-cart-service
-    tag: v1.0.0
-wishlistService:
+    repository: "team4devops/ecommerce-cart-service"
+    tag: "v1.0.0"
+wishlist-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-wishlist-service
-    tag: v1.0.0
-orderService:
+    repository: "team4devops/ecommerce-wishlist-service"
+    tag: "v1.0.0"
+order-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-order-service
-    tag: v1.0.0
-paymentService:
+    repository: "team4devops/ecommerce-order-service"
+    tag: "v1.0.0"
+payment-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-payment-service
-    tag: v1.0.0
-invoiceService:
+    repository: "team4devops/ecommerce-payment-service"
+    tag: "v1.0.0"
+invoice-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-invoice-service
-    tag: v1.0.0
-shippingService:
+    repository: "team4devops/ecommerce-invoice-service"
+    tag: "v1.0.0"
+shipping-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-shipping-service
-    tag: v1.0.0
-reviewRatingService:
+    repository: "team4devops/ecommerce-shipping-service"
+    tag: "v1.0.0"
+review-rating-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-review-rating-service
-    tag: v1.0.0
-recommendationService:
+    repository: "team4devops/ecommerce-review-rating-service"
+    tag: "v1.0.0"
+recommendation-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-recommendation-service
-    tag: v1.0.0
-adminService:
+    repository: "team4devops/ecommerce-recommendation-service"
+    tag: "v1.0.0"
+admin-service:
   replicas: 1
   image:
-    repository: team4devops/ecommerce-admin-service
-    tag: v1.0.0
+    repository: "team4devops/ecommerce-admin-service"
+    tag: "v1.0.0"
 mongodb:
   replicas: 1
   image:
-    repository: mongo
-    tag: 6.0
-  persistence:
-    enabled: true
-    storageClass: "csi-standard"
-    size: 5Gi
-    createEbsSc: false
+    repository: "mongo"
+    tag: "6.0"
