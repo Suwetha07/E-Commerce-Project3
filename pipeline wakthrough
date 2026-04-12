@@ -1,0 +1,68 @@
+# GitHub Actions Continuous Integration Pipeline
+
+We have successfully created a complete CI/CD pipeline inside `.github/workflows/ci-pipeline.yml` on the new `feature/ci-pipeline` branch. 
+
+As requested, we implemented **Alternative 1**, which uses a single YAML file housing 5 distinct, sequentially chained Jobs. This fulfills the structural requirements you outlined while dramatically improving reliability and performance by natively allowing GitHub Actions to track inputs and states between sequential jobs.
+
+## Pipeline Trigger Strategy
+
+The pipeline runs under the following conditions:
+- **Pushes** and **Pull Requests** to `main` and `master`.
+- **Git Tags** matching the `v*.*.*` pattern.
+- **Manual Triggers (`workflow_dispatch`)**: This directly addresses your question! You can now go to the Actions tab on GitHub, click "Run workflow," and **manually type in your chosen `image_tag`**.
+
+#### How Semantic Versioning is Handled:
+During the `docker_build` stage, the tag logic operates hierarchically:
+1. Did the user manually specify an input tag via GitHub UI (`workflow_dispatch`)? If yes, use that.
+2. Was the pipeline triggered by a git semantic tag push (e.g. `v1.2.5`)? If yes, use that.
+3. If neither, fallback to the `git short sha` for traceability without breaking the pipeline.
+
+---
+
+## The 5 Stage Sequence
+
+### 1. 🧩 SonarQube Scan
+- Connects to your SonarQube Server via `SONAR_TOKEN`.
+- Executes on the root repository.
+- **Fail Fast**: Stops immediately and sends a failure email via SMTP if the code quality gate fails.
+
+### 2. 🔐 Snyk Vulnerability Scan
+- Waits for SonarQube to finish.
+- Runs Snyk dependency vulnerability checks enforcing `--severity-threshold=high`.
+- In addition to sending failure emails, it unconditionally outputs a Snyk results `snyk-*.json` artifact as evidence.
+
+### 3. 🐳 Docker Build
+- Waits for Snyk to finish.
+- Dynamically resolves the semantic version.
+- Uses `ecommerce-microservices/api-gateway/Dockerfile` as the template structure.*(Note: You can easily duplicate this workflow or parameterize it down the line to build other microservices!)*
+- Saves the un-pushed docker frame locally as `image.tar` and preserves it using `upload-artifact` so it isn't pushed to DockerHub prematurely.
+
+### 4. 🛡️ Image Scan (Trivy)
+- Waits for the build to finish, then downloads `image.tar`.
+- Uses Aqua Security Trivy to scan the raw OS and library layer inside the built image.
+- Exits with failure code and sends an email if it discovers `CRITICAL` or `HIGH` vulnerabilities.
+
+### 5. 📦 Docker Push
+- The final stage. Only executes if every previous gate was successfully passed.
+- Re-downloads the `image.tar` and logs into your DockerHub securely.
+- Applies both your chosen `version` tag AND the `latest` tag.
+- Sends out a final "Success" email reporting the Docker image name and tags.
+
+---
+
+## Setup Required
+
+> [!CAUTION]
+> Because we opted not to hardcode credentials (a core best practice you asked for), you will need to map these exact Repository Secrets in your GitHub repository before the pipeline will run successfully.
+
+Go to **Settings > Secrets and variables > Actions**, and ensure the following are created:
+* `SONAR_TOKEN`
+* `SONAR_HOST_URL`
+* `SNYK_TOKEN`
+* `DOCKER_USERNAME`
+* `DOCKER_PASSWORD`
+* `SMTP_USERNAME`
+* `SMTP_PASSWORD`
+* `EMAIL_RECIPIENTS` (e.g., `devops@example.com`)
+
+Simply commit this new branch, add your variables, and you will have a robust, production-ready CI pipeline!
