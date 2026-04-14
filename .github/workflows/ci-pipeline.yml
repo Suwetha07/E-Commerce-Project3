@@ -14,19 +14,62 @@ on:
       - master
   workflow_dispatch:
     inputs:
+      service:
+        description: "Select the service to build and deploy"
+        required: true
+        type: choice
+        options:
+          - all
+          - api-gateway
+          - user-service
+          - authentication-service
+          - product-service
+          - search-service
+          - inventory-service
+          - cart-service
+          - wishlist-service
+          - order-service
+          - payment-service
+          - invoice-service
+          - shipping-service
+          - review-rating-service
+          - recommendation-service
+          - admin-service
       image_tag:
         description: "Custom tag for the Docker image (e.g., v1.2.0)"
         required: false
         type: string
 
-env:
-  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/user-service
-  SERVICE_DIR: ecommerce-microservices/user-service
-
 jobs:
-  sonarqube:
-    name: SonarQube Scan
+  # ---------------------------------------------------------
+  # Prepare the service matrix based on the selected input
+  # ---------------------------------------------------------
+  prepare:
+    name: Prepare Service Matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set service matrix
+        id: set-matrix
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          if [ -z "$SERVICE" ] || [ "$SERVICE" = "all" ]; then
+            echo 'matrix={"service":["api-gateway","user-service","authentication-service","product-service","search-service","inventory-service","cart-service","wishlist-service","order-service","payment-service","invoice-service","shipping-service","review-rating-service","recommendation-service","admin-service"]}' >> $GITHUB_OUTPUT
+          else
+            echo "matrix={\"service\":[\"$SERVICE\"]}" >> $GITHUB_OUTPUT
+          fi
+
+  # ---------------------------------------------------------
+  # SonarQube Scan
+  # ---------------------------------------------------------
+  sonarqube:
+    name: "SonarQube Scan (${{ matrix.service }})"
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,9 +79,9 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v2
         with:
           args: >
-            -Dsonar.projectKey=user-service
-            -Dsonar.projectName=user-service
-            -Dsonar.sources=${{ env.SERVICE_DIR }}
+            -Dsonar.projectKey=${{ matrix.service }}
+            -Dsonar.projectName=${{ matrix.service }}
+            -Dsonar.sources=ecommerce-microservices/${{ matrix.service }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -51,15 +94,21 @@ jobs:
           server_port: 465
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: GitHub Actions Delivery Pipeline Failed (SonarQube)
+          subject: "CI Pipeline Failed (SonarQube) - ${{ matrix.service }}"
           to: ${{ secrets.EMAIL_RECIPIENTS }}
           from: GitHub Actions
-          body: The SonarQube code quality scan failed. Please check the workflow logs.
+          body: "The SonarQube code quality scan failed for ${{ matrix.service }}. Please check the workflow logs."
 
+  # ---------------------------------------------------------
+  # Snyk Vulnerability Scan
+  # ---------------------------------------------------------
   snyk:
-    name: Snyk Vulnerability Scan
-    needs: sonarqube
+    name: "Snyk Scan (${{ matrix.service }})"
+    needs: [prepare, sonarqube]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -70,7 +119,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd ${{ env.SERVICE_DIR }}
+          cd ecommerce-microservices/${{ matrix.service }}
           npm install --no-audit --no-fund
 
       - name: Run Snyk to check for vulnerabilities
@@ -78,14 +127,14 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=${{ env.SERVICE_DIR }}/package.json --severity-threshold=high
+          args: --file=ecommerce-microservices/${{ matrix.service }}/package.json --severity-threshold=high
           command: test
 
       - name: Upload Snyk report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snyk-results
+          name: snyk-results-${{ matrix.service }}
           path: snyk-*.json
 
       - name: Send email on failure
@@ -96,15 +145,21 @@ jobs:
           server_port: 465
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: GitHub Actions Delivery Pipeline Failed (Snyk)
+          subject: "CI Pipeline Failed (Snyk) - ${{ matrix.service }}"
           to: ${{ secrets.EMAIL_RECIPIENTS }}
           from: GitHub Actions
-          body: The Snyk dependency scan failed due to high/critical vulnerabilities.
+          body: "The Snyk dependency scan failed for ${{ matrix.service }} due to high/critical vulnerabilities."
 
+  # ---------------------------------------------------------
+  # Docker Build
+  # ---------------------------------------------------------
   docker_build:
-    name: Docker Build
-    needs: snyk
+    name: "Docker Build (${{ matrix.service }})"
+    needs: [prepare, snyk]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     outputs:
       image_tag: ${{ steps.set_tag.outputs.TAG }}
     steps:
@@ -127,28 +182,34 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build \
-            -t ${{ env.DOCKER_IMAGE }}:${{ steps.set_tag.outputs.TAG }} \
-            -f ${{ env.SERVICE_DIR }}/Dockerfile \
-            ${{ env.SERVICE_DIR }}
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ steps.set_tag.outputs.TAG }} \
+            -f ecommerce-microservices/${{ matrix.service }}/Dockerfile \
+            ecommerce-microservices/${{ matrix.service }}
 
       - name: Save Docker image
-        run: docker save ${{ env.DOCKER_IMAGE }}:${{ steps.set_tag.outputs.TAG }} > image.tar
+        run: docker save ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ steps.set_tag.outputs.TAG }} > image.tar
 
       - name: Upload image artifact for scanning
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-${{ matrix.service }}
           path: image.tar
 
+  # ---------------------------------------------------------
+  # Trivy Image Scan
+  # ---------------------------------------------------------
   image_scan:
-    name: Image Scan (Trivy)
-    needs: docker_build
+    name: "Trivy Scan (${{ matrix.service }})"
+    needs: [prepare, docker_build]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-${{ matrix.service }}
 
       - name: Load Docker image
         run: docker load < image.tar
@@ -156,7 +217,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "${{ env.DOCKER_IMAGE }}:${{ needs.docker_build.outputs.image_tag }}"
+          image-ref: "${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ needs.docker_build.outputs.image_tag }}"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
@@ -171,22 +232,26 @@ jobs:
           server_port: 465
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: GitHub Actions Delivery Pipeline Failed (Trivy Image Scan)
+          subject: "CI Pipeline Failed (Trivy) - ${{ matrix.service }}"
           to: ${{ secrets.EMAIL_RECIPIENTS }}
           from: GitHub Actions
-          body: The Trivy image scan job failed. High or critical vulnerabilities were found.
+          body: "The Trivy image scan failed for ${{ matrix.service }}. High or critical vulnerabilities were found."
 
+  # ---------------------------------------------------------
+  # Docker Push
+  # ---------------------------------------------------------
   docker_push:
-    name: Docker Push
-    needs:
-      - docker_build
-      - image_scan
+    name: "Docker Push (${{ matrix.service }})"
+    needs: [prepare, docker_build, image_scan]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-${{ matrix.service }}
 
       - name: Load Docker image
         run: docker load < image.tar
@@ -199,9 +264,9 @@ jobs:
 
       - name: Tag and Push Docker Image
         run: |
-          docker tag ${{ env.DOCKER_IMAGE }}:${{ needs.docker_build.outputs.image_tag }} ${{ env.DOCKER_IMAGE }}:latest
-          docker push ${{ env.DOCKER_IMAGE }}:${{ needs.docker_build.outputs.image_tag }}
-          docker push ${{ env.DOCKER_IMAGE }}:latest
+          docker tag ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ needs.docker_build.outputs.image_tag }} ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ needs.docker_build.outputs.image_tag }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
 
       - name: Send Final Success Summary Email
         uses: dawidd6/action-send-mail@v3
@@ -210,13 +275,13 @@ jobs:
           server_port: 465
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: GitHub Actions Pipeline Succeeded
+          subject: "CI Pipeline Succeeded - ${{ matrix.service }}"
           to: ${{ secrets.EMAIL_RECIPIENTS }}
           from: GitHub Actions
           body: |
-            The CI pipeline completed successfully!
+            The CI pipeline completed successfully for ${{ matrix.service }}!
 
-            Docker Image: ${{ env.DOCKER_IMAGE }}
+            Docker Image: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}
             Tags Pushed: ${{ needs.docker_build.outputs.image_tag }}, latest
 
             All scans (SonarQube, Snyk, and Trivy) passed.
