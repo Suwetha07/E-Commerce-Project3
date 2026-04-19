@@ -16,16 +16,16 @@ spec:
     spec:
       containers:
       - name: frontend-ui
-        image: <YOUR_DOCKER_USERNAME>/frontend-ui:v2.0.0
+        image: team4devops/ecommerce-frontend-ui:v1.0.0
         ports:
         - containerPort: 80
         resources:
           requests:
-            cpu: 25m
-            memory: 64Mi
+            cpu: 5m
+            memory: 32Mi
           limits:
-            cpu: 250m
-            memory: 256Mi
+            cpu: 100m
+            memory: 128Mi
         livenessProbe:
           httpGet:
             path: /
