@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: frontend-ui
-        image: team4devops/ecommerce-frontend-ui:v1.0.0
+        image: vignesh8386/ecommerce-frontend-ui:v1.0.1
         ports:
         - containerPort: 80
         resources:
