@@ -85,3 +85,13 @@ mongodb:
   image:
     repository: "mongo"
     tag: "6.0"
+
+storageClass:
+  ebs:
+    enabled: true
+    name: "ebs-sc"
+    isDefault: "true"
+    provisioner: "ebs.csi.aws.com"
+    volumeBindingMode: "WaitForFirstConsumer"
+    parameters:
+      type: "gp3"

@@ -1,0 +1,12 @@
+{{- if .Values.storageClass.ebs.enabled }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.storageClass.ebs.name }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "{{ .Values.storageClass.ebs.isDefault }}"
+provisioner: {{ .Values.storageClass.ebs.provisioner }}
+volumeBindingMode: {{ .Values.storageClass.ebs.volumeBindingMode }}
+parameters:
+  type: {{ .Values.storageClass.ebs.parameters.type }}
+{{- end }}
