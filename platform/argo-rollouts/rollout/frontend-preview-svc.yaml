@@ -1,0 +1,20 @@
+# =============================================================
+# Frontend UI - Preview Service (Blue-Green)
+# Receives preview/staging traffic for the new version
+# =============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-ui-preview
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend-ui
+    role: preview
+spec:
+  selector:
+    app: frontend-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP

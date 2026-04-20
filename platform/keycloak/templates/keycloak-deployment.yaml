@@ -1,0 +1,114 @@
+# =============================================================
+# Keycloak Deployment
+# Imports the pre-configured realm on startup.
+# =============================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-admin-credentials
+  namespace: {{ .Values.keycloak.namespace }}
+type: Opaque
+stringData:
+  KEYCLOAK_ADMIN: {{ .Values.keycloak.adminUser }}
+  KEYCLOAK_ADMIN_PASSWORD: {{ .Values.keycloak.adminPassword }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: {{ .Values.keycloak.namespace }}
+  labels:
+    app: keycloak
+    app.kubernetes.io/component: identity-provider
+spec:
+  replicas: {{ .Values.keycloak.replicas }}
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL..."
+              until nc -z keycloak-postgres 5432; do sleep 2; done
+              echo "PostgreSQL is ready!"
+      containers:
+        - name: keycloak
+          image: {{ .Values.keycloak.image.repository }}:{{ .Values.keycloak.image.tag }}
+          args:
+            - start-dev
+            - --import-realm
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-credentials
+                  key: KEYCLOAK_ADMIN
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-credentials
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_DB
+              value: "postgres"
+            - name: KC_DB_URL
+              value: "jdbc:postgresql://keycloak-postgres:5432/{{ .Values.postgres.database }}"
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: KC_PROXY
+              value: "edge"
+            - name: KC_HOSTNAME
+              value: "keycloak.{{ .Values.global.domain }}"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: {{ .Values.keycloak.resources.requests.cpu }}
+              memory: {{ .Values.keycloak.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.keycloak.resources.limits.cpu }}
+              memory: {{ .Values.keycloak.resources.limits.memory }}
+          volumeMounts:
+            - name: realm-config
+              mountPath: /opt/keycloak/data/import
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: realm-config
+          configMap:
+            name: keycloak-realm-config

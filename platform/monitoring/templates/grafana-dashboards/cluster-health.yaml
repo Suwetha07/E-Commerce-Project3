@@ -1,0 +1,173 @@
+# =============================================================
+# Grafana Dashboard: Cluster Health Overview
+# Auto-loaded by Grafana sidecar via label: grafana_dashboard
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cluster-health
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  cluster-health.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "panels": [
+        {
+          "title": "Node CPU Usage (%)",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 100, "unit": "percent",
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Node Memory Usage (%)",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+          "targets": [
+            {
+              "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 100, "unit": "percent",
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 75 },
+                  { "color": "red", "value": 90 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Node Disk Usage (%)",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100",
+              "legendFormat": "{{ "{{" }}instance{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 100, "unit": "percent",
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Cluster Nodes Status",
+          "type": "stat",
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+              "legendFormat": "Ready Nodes"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "green", "value": 2 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Pod Status by Namespace",
+          "type": "bargauge",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "count by(namespace, phase) (kube_pod_status_phase{phase=~\"Running|Pending|Failed|Succeeded\"})",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }} - {{ "{{" }}phase{{ "}}" }}"
+            }
+          ]
+        },
+        {
+          "title": "PVC Usage (%)",
+          "type": "bargauge",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}persistentvolumeclaim{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 100, "unit": "percent",
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "API Server Request Latency (p99)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket[5m])) by (le, verb))",
+              "legendFormat": "{{ "{{" }}verb{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "title": "Pod Restart Count (Top 10)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "topk(10, sum by(namespace, pod) (increase(kube_pod_container_status_restarts_total[1h])))",
+              "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}pod{{ "}}" }}"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["cluster", "health", "infrastructure"],
+      "time": { "from": "now-6h", "to": "now" },
+      "title": "Cluster Health Overview",
+      "uid": "cluster-health-overview"
+    }

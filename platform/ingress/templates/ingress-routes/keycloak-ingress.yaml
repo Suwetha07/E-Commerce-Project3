@@ -1,0 +1,30 @@
+# =============================================================
+# Keycloak Ingress - keycloak.example.com
+# =============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  namespace: {{ .Values.ingress.keycloak.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.haproxy.controller.ingressClass }}
+    cert-manager.io/cluster-issuer: {{ .Values.global.clusterIssuer }}
+    haproxy.org/ssl-redirect: "true"
+    haproxy.org/timeout-server: "120s"
+    haproxy.org/request-set-header: "X-Forwarded-Proto https"
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.keycloak.host }}
+      secretName: keycloak-tls
+  rules:
+    - host: {{ .Values.ingress.keycloak.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ingress.keycloak.service }}
+                port:
+                  number: {{ .Values.ingress.keycloak.port }}

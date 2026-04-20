@@ -1,0 +1,111 @@
+# =============================================================
+# Kubernetes OIDC RBAC Configuration
+# Maps Keycloak groups to Kubernetes ClusterRoles
+# This enables centralized user management for cluster access.
+# =============================================================
+# NOTE: The K8s API server must be configured with OIDC flags:
+#   --oidc-issuer-url=https://keycloak.example.com/realms/devops-platform
+#   --oidc-client-id=kubernetes
+#   --oidc-username-claim=preferred_username
+#   --oidc-groups-claim=groups
+#   --oidc-ca-file=/path/to/ca.crt  (if using self-signed)
+# =============================================================
+
+# ---- ClusterRoleBinding: platform-admins → cluster-admin ----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-platform-admins
+  labels:
+    app.kubernetes.io/managed-by: keycloak-oidc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: Group
+    name: platform-admins
+    apiGroup: rbac.authorization.k8s.io
+---
+# ---- ClusterRole: developer-access ----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-access
+  labels:
+    app.kubernetes.io/managed-by: keycloak-oidc
+rules:
+  # Full access to workloads
+  - apiGroups: ["", "apps", "batch", "extensions"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets", "pods", "services", "configmaps", "secrets", "jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Access to networking
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Read access to events and logs
+  - apiGroups: [""]
+    resources: ["events", "pods/log", "pods/exec", "pods/portforward"]
+    verbs: ["get", "list", "watch", "create"]
+  # Access to Argo Rollouts
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts", "rollouts/status", "analysisruns", "analysistemplates", "experiments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Access to HPA and PDB
+  - apiGroups: ["autoscaling", "policy"]
+    resources: ["horizontalpodautoscalers", "poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Read-only cluster-level resources
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+---
+# ---- ClusterRoleBinding: developers → developer-access ----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-developers
+  labels:
+    app.kubernetes.io/managed-by: keycloak-oidc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer-access
+subjects:
+  - kind: Group
+    name: developers
+    apiGroup: rbac.authorization.k8s.io
+---
+# ---- ClusterRole: viewer-access ----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: viewer-access
+  labels:
+    app.kubernetes.io/managed-by: keycloak-oidc
+rules:
+  - apiGroups: ["", "apps", "batch", "extensions", "networking.k8s.io", "autoscaling", "policy", "argoproj.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]
+---
+# ---- ClusterRoleBinding: viewers → viewer-access ----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-viewers
+  labels:
+    app.kubernetes.io/managed-by: keycloak-oidc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: viewer-access
+subjects:
+  - kind: Group
+    name: viewers
+    apiGroup: rbac.authorization.k8s.io

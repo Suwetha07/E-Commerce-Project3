@@ -1,0 +1,127 @@
+# =============================================================
+# Grafana Dashboard: ArgoCD Overview
+# Auto-loaded by Grafana sidecar via label: grafana_dashboard
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-argocd
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  argocd-dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "Application Sync Status",
+          "type": "piechart",
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "count(argocd_app_info) by (sync_status)",
+              "legendFormat": "{{ "{{" }}sync_status{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "title": "Application Health Status",
+          "type": "piechart",
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+          "targets": [
+            {
+              "expr": "count(argocd_app_info) by (health_status)",
+              "legendFormat": "{{ "{{" }}health_status{{ "}}" }}"
+            }
+          ]
+        },
+        {
+          "title": "Total Applications",
+          "type": "stat",
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "targets": [
+            {
+              "expr": "count(argocd_app_info)",
+              "legendFormat": "Total Apps"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 5 },
+                  { "color": "red", "value": 10 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "ArgoCD Sync Duration (seconds)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "argocd_app_sync_total",
+              "legendFormat": "{{ "{{" }}name{{ "}}" }} - {{ "{{" }}phase{{ "}}" }}"
+            }
+          ]
+        },
+        {
+          "title": "ArgoCD API Server Request Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "rate(argocd_redis_request_total[5m])",
+              "legendFormat": "{{ "{{" }}initiator{{ "}}" }}"
+            }
+          ]
+        },
+        {
+          "title": "Applications by Project",
+          "type": "table",
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "argocd_app_info",
+              "format": "table",
+              "instant": true
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "includeByName": {
+                  "name": true,
+                  "project": true,
+                  "sync_status": true,
+                  "health_status": true,
+                  "namespace": true
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["argocd", "gitops"],
+      "templating": { "list": [] },
+      "time": { "from": "now-6h", "to": "now" },
+      "title": "ArgoCD Overview",
+      "uid": "argocd-overview"
+    }

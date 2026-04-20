@@ -1,0 +1,73 @@
+# =============================================================
+# ArgoCD AppProject: ecommerce
+# Scoped to the E-Commerce application deployments
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ecommerce
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "E-Commerce microservices application deployments"
+
+  # Source repositories allowed
+  sourceRepos:
+    - "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+
+  # Destination clusters and namespaces
+  destinations:
+    - server: "https://kubernetes.default.svc"
+      namespace: "clahanstore"
+    - server: "https://kubernetes.default.svc"
+      namespace: "clahanstore-dev"
+    - server: "https://kubernetes.default.svc"
+      namespace: "clahanstore-staging"
+    - server: "https://kubernetes.default.svc"
+      namespace: "clahanstore-prod"
+
+  # Allowed cluster-scoped resources
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "storage.k8s.io"
+      kind: StorageClass
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
+
+  # Allowed namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: "apps"
+      kind: "*"
+    - group: "batch"
+      kind: "*"
+    - group: "autoscaling"
+      kind: "*"
+    - group: "networking.k8s.io"
+      kind: "*"
+    - group: "gateway.networking.k8s.io"
+      kind: "*"
+    - group: "argoproj.io"
+      kind: "*"
+
+  # Roles within this project
+  roles:
+    - name: developer
+      description: "Developer access to ecommerce apps"
+      policies:
+        - p, proj:ecommerce:developer, applications, get, ecommerce/*, allow
+        - p, proj:ecommerce:developer, applications, sync, ecommerce/*, allow
+      groups:
+        - developers
+
+    - name: viewer
+      description: "Read-only access to ecommerce apps"
+      policies:
+        - p, proj:ecommerce:viewer, applications, get, ecommerce/*, allow
+      groups:
+        - viewers

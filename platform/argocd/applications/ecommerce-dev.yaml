@@ -1,0 +1,44 @@
+# =============================================================
+# E-Commerce Application - DEV Environment
+# Auto-sync enabled with prune and self-heal
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ecommerce-dev
+  namespace: argocd
+  labels:
+    environment: dev
+    app.kubernetes.io/part-of: ecommerce
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.email: ""
+    notifications.argoproj.io/subscribe.on-sync-failed.email: ""
+    notifications.argoproj.io/subscribe.on-health-degraded.email: ""
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: ecommerce
+  source:
+    repoURL: "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+    targetRevision: feature/argo-blue-green
+    path: ecommerce-microservices/release
+    helm:
+      valueFiles:
+        - ../../platform/environments/dev/values-override.yaml
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: clahanstore-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,32 @@
+# =============================================================
+# App-of-Apps Root Application
+# This is the ONLY application you need to apply manually.
+# It bootstraps ALL other ArgoCD Applications declaratively.
+# =============================================================
+# kubectl apply -f app-of-apps.yaml
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+    targetRevision: feature/argo-blue-green
+    path: platform/argocd/applications
+    directory:
+      recurse: false
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

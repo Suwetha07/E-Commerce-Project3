@@ -1,0 +1,63 @@
+# =============================================================
+# HAProxy Kubernetes Ingress Controller
+# Helm chart: haproxytech/kubernetes-ingress
+# Install: helm install haproxy haproxytech/kubernetes-ingress -n haproxy-ingress -f this-file.yaml
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: haproxy-install-values
+  namespace: {{ .Values.haproxy.namespace }}
+  annotations:
+    helm.sh/chart: "haproxytech/kubernetes-ingress"
+    meta.helm.sh/release-name: "haproxy-ingress"
+data:
+  values.yaml: |
+    controller:
+      kind: {{ .Values.haproxy.controller.kind }}
+      ingressClass: {{ .Values.haproxy.controller.ingressClass }}
+
+      # -- Service configuration
+      service:
+        type: {{ .Values.haproxy.controller.service.type }}
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+
+      # -- Resource limits
+      resources:
+        requests:
+          cpu: {{ .Values.haproxy.controller.resources.requests.cpu }}
+          memory: {{ .Values.haproxy.controller.resources.requests.memory }}
+        limits:
+          cpu: {{ .Values.haproxy.controller.resources.limits.cpu }}
+          memory: {{ .Values.haproxy.controller.resources.limits.memory }}
+
+      # -- Global HAProxy configuration
+      config:
+        timeout-connect: "{{ .Values.haproxy.controller.config.timeout_connect | default "10s" }}"
+        timeout-client: "{{ .Values.haproxy.controller.config.timeout_client | default "60s" }}"
+        timeout-server: "{{ .Values.haproxy.controller.config.timeout_server | default "60s" }}"
+        ssl-redirect: "true"
+        rate-limit: "true"
+        rate-limit-requests: "100"
+        rate-limit-period: "1m"
+        access-log: "true"
+        log-format: "%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r"
+
+      # -- Enable Prometheus metrics
+      metrics:
+        enabled: true
+        service:
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "1024"
+
+      # -- Default TLS certificate
+      defaultTLSSecret:
+        enabled: false
+
+    # -- Service Monitor for Prometheus
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring

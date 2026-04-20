@@ -1,0 +1,185 @@
+# =============================================================
+# ArgoCD Installation Values
+# Helm chart: argo/argo-cd
+# Install: helm install argocd argo/argo-cd -n argocd -f values.yaml
+# =============================================================
+# Integrates with Keycloak OIDC for SSO authentication
+# and maps Keycloak groups to ArgoCD RBAC roles.
+# =============================================================
+
+global:
+  domain: "example.com"
+
+server:
+  # -- TLS is terminated at HAProxy ingress, ArgoCD runs in insecure mode
+  extraArgs:
+    - --insecure
+
+  # -- OIDC configuration via Keycloak
+  config:
+    url: "https://argocd.example.com"
+
+    # Keycloak OIDC provider
+    oidc.config: |
+      name: Keycloak
+      issuer: https://keycloak.example.com/realms/devops-platform
+      clientID: argocd
+      clientSecret: $oidc.keycloak.clientSecret
+      requestedScopes:
+        - openid
+        - profile
+        - email
+        - groups
+      requestedIDTokenClaims:
+        groups:
+          essential: true
+
+    # Resource tracking method
+    resource.tracking.method: annotation
+
+    # Status badge enabled
+    statusbadge.enabled: "true"
+
+    # Application resync period (seconds)
+    timeout.reconciliation: "180"
+
+  # -- RBAC configuration mapping Keycloak groups to ArgoCD roles
+  rbacConfig:
+    policy.default: role:readonly
+    policy.csv: |
+      # Platform admins get full ArgoCD admin access
+      g, platform-admins, role:admin
+
+      # Developers can view and sync apps in the ecommerce project
+      p, role:developer, applications, get, ecommerce/*, allow
+      p, role:developer, applications, sync, ecommerce/*, allow
+      p, role:developer, applications, action/*, ecommerce/*, allow
+      p, role:developer, applications, override, ecommerce/*, allow
+      p, role:developer, logs, get, ecommerce/*, allow
+      p, role:developer, exec, create, ecommerce/*, allow
+      g, developers, role:developer
+
+      # Viewers get read-only access to everything
+      p, role:viewer, applications, get, */*, allow
+      p, role:viewer, logs, get, */*, allow
+      p, role:viewer, clusters, get, *, allow
+      p, role:viewer, projects, get, *, allow
+      p, role:viewer, repositories, get, *, allow
+      g, viewers, role:viewer
+
+    scopes: "[groups]"
+
+# -- Secret containing the Keycloak OIDC client secret
+configs:
+  secret:
+    extra:
+      oidc.keycloak.clientSecret: "argocd-oidc-secret"
+
+  # -- Known SSH hosts for Git repos
+  ssh:
+    extraHosts: ""
+
+  # -- Repository credentials
+  repositories:
+    ecommerce-project:
+      url: "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+      name: "ecommerce-project"
+      type: "git"
+
+# -- ArgoCD Notifications Controller
+notifications:
+  enabled: true
+
+  # Email notification service
+  notifiers:
+    service.email: |
+      host: smtp.gmail.com
+      port: 587
+      username: $email-username
+      password: $email-password
+      from: argocd-notifications@example.com
+
+  # Notification templates
+  templates:
+    template.app-sync-succeeded: |
+      email:
+        subject: "✅ ArgoCD Sync Succeeded: {{.app.metadata.name}}"
+      message: |
+        Application: {{.app.metadata.name}}
+        Project: {{.app.spec.project}}
+        Status: {{.app.status.sync.status}}
+        Health: {{.app.status.health.status}}
+        Revision: {{.app.status.sync.revision}}
+        Time: {{.app.status.operationState.finishedAt}}
+
+    template.app-sync-failed: |
+      email:
+        subject: "❌ ArgoCD Sync FAILED: {{.app.metadata.name}}"
+      message: |
+        Application: {{.app.metadata.name}}
+        Project: {{.app.spec.project}}
+        Sync Status: {{.app.status.sync.status}}
+        Health: {{.app.status.health.status}}
+        Error: {{.app.status.operationState.message}}
+
+    template.app-health-degraded: |
+      email:
+        subject: "⚠️ ArgoCD App Degraded: {{.app.metadata.name}}"
+      message: |
+        Application: {{.app.metadata.name}}
+        Health Status: {{.app.status.health.status}}
+        Sync Status: {{.app.status.sync.status}}
+        Message: {{.app.status.health.message}}
+
+  # Triggers define when to send notifications
+  triggers:
+    trigger.on-sync-succeeded: |
+      - when: app.status.operationState.phase in ['Succeeded']
+        send: [app-sync-succeeded]
+    trigger.on-sync-failed: |
+      - when: app.status.operationState.phase in ['Error', 'Failed']
+        send: [app-sync-failed]
+    trigger.on-health-degraded: |
+      - when: app.status.health.status == 'Degraded'
+        send: [app-health-degraded]
+
+  # Secret for email credentials
+  secret:
+    items:
+      email-username: "your-email@gmail.com"
+      email-password: "your-app-password"
+
+# -- Controller configuration
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# -- Repo server configuration
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# -- ApplicationSet controller
+applicationSet:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# -- Metrics for Prometheus scraping
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring

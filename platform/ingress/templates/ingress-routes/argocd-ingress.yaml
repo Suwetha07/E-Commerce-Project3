@@ -1,0 +1,30 @@
+# =============================================================
+# ArgoCD Ingress - argocd.example.com
+# Uses SSL passthrough since ArgoCD handles its own TLS
+# =============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: {{ .Values.ingress.argocd.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.haproxy.controller.ingressClass }}
+    cert-manager.io/cluster-issuer: {{ .Values.global.clusterIssuer }}
+    haproxy.org/ssl-passthrough: "true"
+    haproxy.org/server-ssl: "true"
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.argocd.host }}
+      secretName: argocd-tls
+  rules:
+    - host: {{ .Values.ingress.argocd.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ingress.argocd.service }}
+                port:
+                  number: {{ .Values.ingress.argocd.port }}

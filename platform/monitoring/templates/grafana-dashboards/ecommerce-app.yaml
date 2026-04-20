@@ -1,0 +1,129 @@
+# =============================================================
+# Grafana Dashboard: E-Commerce Application Metrics
+# Auto-loaded by Grafana sidecar via label: grafana_dashboard
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-ecommerce
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  ecommerce-app.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "panels": [
+        {
+          "title": "Running Pods per Service",
+          "type": "bargauge",
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "count by(label_app) (kube_pod_info{namespace=~\"clahanstore.*\"} * on(pod) group_left kube_pod_status_phase{phase=\"Running\"})",
+              "legendFormat": "{{ "{{" }}label_app{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "thresholds": {
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Container CPU Usage by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+          "targets": [
+            {
+              "expr": "sum by(container) (rate(container_cpu_usage_seconds_total{namespace=~\"clahanstore.*\", container!=\"\", container!=\"POD\"}[5m]))",
+              "legendFormat": "{{ "{{" }}container{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "cores" } }
+        },
+        {
+          "title": "Container Memory Usage by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+          "targets": [
+            {
+              "expr": "sum by(container) (container_memory_working_set_bytes{namespace=~\"clahanstore.*\", container!=\"\", container!=\"POD\"}) / 1024 / 1024",
+              "legendFormat": "{{ "{{" }}container{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "MiB" } }
+        },
+        {
+          "title": "Container Restart Count (Last 1h)",
+          "type": "table",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+          "targets": [
+            {
+              "expr": "sum by(namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace=~\"clahanstore.*\"}[1h])) > 0",
+              "format": "table",
+              "instant": true
+            }
+          ]
+        },
+        {
+          "title": "MongoDB Storage Usage",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+          "targets": [
+            {
+              "expr": "kubelet_volume_stats_used_bytes{namespace=~\"clahanstore.*\", persistentvolumeclaim=~\"mongodata.*\"} / kubelet_volume_stats_capacity_bytes{namespace=~\"clahanstore.*\", persistentvolumeclaim=~\"mongodata.*\"} * 100",
+              "legendFormat": "{{ "{{" }}persistentvolumeclaim{{ "}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 100, "unit": "percent",
+              "thresholds": {
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "title": "Application Logs (Loki)",
+          "type": "logs",
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 26 },
+          "targets": [
+            {
+              "expr": "{namespace=~\"clahanstore.*\"} |= \"\"",
+              "refId": "A"
+            }
+          ],
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "options": {
+            "showTime": true,
+            "showLabels": true,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "sortOrder": "Descending",
+            "dedupStrategy": "none",
+            "enableLogDetails": true
+          }
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["ecommerce", "application", "microservices"],
+      "time": { "from": "now-6h", "to": "now" },
+      "title": "E-Commerce Application Metrics",
+      "uid": "ecommerce-app-metrics"
+    }

@@ -1,0 +1,17 @@
+# =============================================================
+# Monitoring Stack - Values
+# =============================================================
+global:
+  domain: "example.com"
+
+monitoring:
+  namespace: "monitoring"
+
+# ---- Alerting (Email) ----
+alerting:
+  email:
+    to: "admin@example.com"
+    from: "alertmanager@example.com"
+    smarthost: "smtp.gmail.com:587"
+    username: "your-email@gmail.com"
+    password: "your-app-password"

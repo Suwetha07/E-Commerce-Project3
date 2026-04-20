@@ -1,3 +1,4 @@
+{{- if not (index .Values "frontend-ui" "rollouts" "enabled" | default false) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,3 +47,4 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 3
+{{- end }}

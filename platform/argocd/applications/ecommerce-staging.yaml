@@ -1,0 +1,44 @@
+# =============================================================
+# E-Commerce Application - STAGING Environment
+# Auto-sync enabled, prune only (no self-heal for manual promotion)
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ecommerce-staging
+  namespace: argocd
+  labels:
+    environment: staging
+    app.kubernetes.io/part-of: ecommerce
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.email: ""
+    notifications.argoproj.io/subscribe.on-sync-failed.email: ""
+    notifications.argoproj.io/subscribe.on-health-degraded.email: ""
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: ecommerce
+  source:
+    repoURL: "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+    targetRevision: feature/argo-blue-green
+    path: ecommerce-microservices/release
+    helm:
+      valueFiles:
+        - ../../platform/environments/staging/values-override.yaml
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: clahanstore-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

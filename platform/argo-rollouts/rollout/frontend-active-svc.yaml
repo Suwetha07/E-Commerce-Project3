@@ -1,0 +1,20 @@
+# =============================================================
+# Frontend UI - Active Service (Blue-Green)
+# Receives production/live traffic
+# =============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-ui-active
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend-ui
+    role: active
+spec:
+  selector:
+    app: frontend-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP

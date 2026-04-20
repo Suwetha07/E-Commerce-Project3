@@ -1,0 +1,33 @@
+# =============================================================
+# Argo Rollouts Controller - Installation Values
+# Helm chart: argo/argo-rollouts
+# Install: helm install argo-rollouts argo/argo-rollouts -n argo-rollouts -f values.yaml
+# =============================================================
+controller:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+
+dashboard:
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 3100
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

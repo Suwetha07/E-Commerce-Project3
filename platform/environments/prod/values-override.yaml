@@ -1,0 +1,63 @@
+# =============================================================
+# PRODUCTION Environment - Values Override
+# =============================================================
+# - Higher replicas for HA
+# - Rollouts enabled (Blue-Green) for frontend
+# - Manual promotion required (safety-first)
+# - Manual ArgoCD sync required (no auto-sync)
+# =============================================================
+global:
+  namespace: "clahanstore-prod"
+
+frontend-ui:
+  replicas: 3
+  image:
+    repository: "team4devops/ecommerce-frontend-ui"
+    tag: "v1.0.0"                  # Pin to specific version in prod
+  rollouts:
+    enabled: true
+    strategy: blueGreen
+    autoPromotionEnabled: false    # NEVER auto-promote in production
+
+api-gateway:
+  replicas: 3
+user-service:
+  replicas: 2
+auth-service:
+  replicas: 2
+product-service:
+  replicas: 3
+search-service:
+  replicas: 2
+inventory-service:
+  replicas: 2
+cart-service:
+  replicas: 2
+wishlist-service:
+  replicas: 1
+order-service:
+  replicas: 2
+payment-service:
+  replicas: 2
+invoice-service:
+  replicas: 1
+shipping-service:
+  replicas: 2
+review-rating-service:
+  replicas: 1
+recommendation-service:
+  replicas: 1
+admin-service:
+  replicas: 1
+mongodb:
+  replicas: 1
+
+storageClass:
+  ebs:
+    enabled: true
+    name: "ebs-sc"
+    isDefault: "true"
+    provisioner: "ebs.csi.aws.com"
+    volumeBindingMode: "WaitForFirstConsumer"
+    parameters:
+      type: "gp3"

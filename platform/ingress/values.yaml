@@ -1,0 +1,78 @@
+# =============================================================
+# Platform Ingress - Values
+# =============================================================
+# Replace 'example.com' with your actual domain throughout.
+# =============================================================
+
+global:
+  domain: "example.com"
+  clusterIssuer: "letsencrypt-prod"
+
+# ---- HAProxy Ingress Controller ----
+haproxy:
+  namespace: "haproxy-ingress"
+  controller:
+    kind: DaemonSet                    # DaemonSet for HA (runs on every node)
+    ingressClass: "haproxy"
+    service:
+      type: LoadBalancer               # Change to NodePort for bare-metal
+      # nodePorts:
+      #   http: 30080
+      #   https: 30443
+    config:
+      timeout-connect: "10s"
+      timeout-client: "60s"
+      timeout-server: "60s"
+      ssl-redirect: "true"
+      rate-limit: "100"
+      access-log: "true"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ---- cert-manager ----
+certManager:
+  namespace: "cert-manager"
+  installCRDs: true
+  acme:
+    email: "admin@example.com"
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    # For testing, use staging:
+    # server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+# ---- Ingress Routes ----
+ingress:
+  argocd:
+    host: "argocd.example.com"
+    service: "argocd-server"
+    namespace: "argocd"
+    port: 443
+    sslPassthrough: true
+
+  grafana:
+    host: "grafana.example.com"
+    service: "kube-prometheus-stack-grafana"
+    namespace: "monitoring"
+    port: 80
+
+  keycloak:
+    host: "keycloak.example.com"
+    service: "keycloak"
+    namespace: "keycloak"
+    port: 8080
+
+  app:
+    host: "app.example.com"
+    service: "frontend-ui-active"
+    namespace: "clahanstore"
+    port: 80
+
+  api:
+    host: "api.example.com"
+    service: "api-gateway"
+    namespace: "clahanstore"
+    port: 3000

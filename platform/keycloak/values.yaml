@@ -1,0 +1,107 @@
+# =============================================================
+# Keycloak OIDC - Values
+# =============================================================
+# Central identity and access management for the entire platform.
+# Provides OIDC authentication for:
+#   - ArgoCD dashboard
+#   - Grafana dashboards
+#   - Kubernetes API server (kubectl access)
+#   - Full cluster RBAC
+# =============================================================
+
+global:
+  domain: "example.com"
+
+keycloak:
+  namespace: "keycloak"
+  image:
+    repository: "quay.io/keycloak/keycloak"
+    tag: "24.0"
+  replicas: 1
+  adminUser: "admin"
+  adminPassword: "admin"           # CHANGE IN PRODUCTION - use a Secret
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # ---- Realm configuration ----
+  realm:
+    name: "devops-platform"
+    displayName: "DevOps Platform"
+
+  # ---- OIDC Clients ----
+  clients:
+    argocd:
+      clientId: "argocd"
+      clientSecret: "argocd-oidc-secret"     # CHANGE IN PRODUCTION
+      redirectUris:
+        - "https://argocd.example.com/auth/callback"
+        - "https://argocd.example.com/api/dex/callback"
+    grafana:
+      clientId: "grafana"
+      clientSecret: "grafana-oidc-secret"     # CHANGE IN PRODUCTION
+      redirectUris:
+        - "https://grafana.example.com/login/generic_oauth"
+    kubernetes:
+      clientId: "kubernetes"
+      clientSecret: "kubernetes-oidc-secret"  # CHANGE IN PRODUCTION
+      # This client allows kubectl OIDC login for full cluster access
+      redirectUris:
+        - "http://localhost:8000"
+        - "http://localhost:18000"
+
+  # ---- Roles ----
+  roles:
+    - name: "platform-admin"
+      description: "Full administrative access to all platform resources"
+    - name: "developer"
+      description: "Deploy and manage applications in allowed namespaces"
+    - name: "viewer"
+      description: "Read-only access to dashboards and cluster resources"
+
+  # ---- Default Users (for dev/testing) ----
+  users:
+    - username: "admin"
+      email: "admin@example.com"
+      firstName: "Platform"
+      lastName: "Admin"
+      password: "admin123"
+      roles: ["platform-admin"]
+      groups: ["platform-admins"]
+    - username: "developer"
+      email: "developer@example.com"
+      firstName: "Dev"
+      lastName: "User"
+      password: "dev123"
+      roles: ["developer"]
+      groups: ["developers"]
+    - username: "viewer"
+      email: "viewer@example.com"
+      firstName: "View"
+      lastName: "Only"
+      password: "view123"
+      roles: ["viewer"]
+      groups: ["viewers"]
+
+# ---- PostgreSQL Backend ----
+postgres:
+  image:
+    repository: "postgres"
+    tag: "16-alpine"
+  database: "keycloak"
+  user: "keycloak"
+  password: "keycloakdbpass"        # CHANGE IN PRODUCTION
+  storage:
+    size: "2Gi"
+    storageClass: "ebs-sc"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

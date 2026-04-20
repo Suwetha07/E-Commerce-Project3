@@ -1,0 +1,19 @@
+# Platform admins get full ArgoCD admin access
+g, platform-admins, role:admin
+
+# Developers: view, sync, and manage apps in the ecommerce project
+p, role:developer, applications, get, ecommerce/*, allow
+p, role:developer, applications, sync, ecommerce/*, allow
+p, role:developer, applications, action/*, ecommerce/*, allow
+p, role:developer, applications, override, ecommerce/*, allow
+p, role:developer, logs, get, ecommerce/*, allow
+p, role:developer, exec, create, ecommerce/*, allow
+g, developers, role:developer
+
+# Viewers: read-only access to all resources
+p, role:viewer, applications, get, */*, allow
+p, role:viewer, logs, get, */*, allow
+p, role:viewer, clusters, get, *, allow
+p, role:viewer, projects, get, *, allow
+p, role:viewer, repositories, get, *, allow
+g, viewers, role:viewer

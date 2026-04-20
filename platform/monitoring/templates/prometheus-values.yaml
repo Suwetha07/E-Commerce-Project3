@@ -1,0 +1,296 @@
+# =============================================================
+# kube-prometheus-stack - Helm Values
+# Chart: prometheus-community/kube-prometheus-stack
+# Install: helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f this-file.yaml
+# =============================================================
+# Includes: Prometheus, Grafana, Alertmanager, node-exporter,
+#           kube-state-metrics, and default recording/alerting rules.
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-stack-values
+  namespace: {{ .Values.monitoring.namespace }}
+  annotations:
+    helm.sh/chart: "prometheus-community/kube-prometheus-stack"
+    meta.helm.sh/release-name: "prometheus"
+data:
+  values.yaml: |
+    # ---- Prometheus ----
+    prometheus:
+      enabled: true
+      prometheusSpec:
+        retention: 15d
+        retentionSize: "8GB"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: ebs-sc
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 10Gi
+        # Scrape all ServiceMonitors across all namespaces
+        serviceMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelector: {}
+        serviceMonitorNamespaceSelector: {}
+        podMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelector: {}
+        podMonitorNamespaceSelector: {}
+        # Additional scrape configs for ArgoCD and Argo Rollouts
+        additionalScrapeConfigs:
+          - job_name: 'argocd-metrics'
+            kubernetes_sd_configs:
+              - role: endpoints
+                namespaces:
+                  names: ['argocd']
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_component]
+                regex: metrics
+                action: keep
+          - job_name: 'argo-rollouts-metrics'
+            kubernetes_sd_configs:
+              - role: endpoints
+                namespaces:
+                  names: ['argo-rollouts']
+
+      # Additional PrometheusRules for custom alerts
+      additionalPrometheusRulesMap:
+        argocd-alerts:
+          groups:
+            - name: argocd.rules
+              rules:
+                - alert: ArgoCDSyncFailed
+                  expr: argocd_app_info{sync_status="OutOfSync"} == 1
+                  for: 5m
+                  labels:
+                    severity: critical
+                    component: argocd
+                  annotations:
+                    summary: "ArgoCD sync failed for {{ "{{" }} $labels.name {{ "}}" }}"
+                    description: "Application {{ "{{" }} $labels.name {{ "}}" }} in project {{ "{{" }} $labels.project {{ "}}" }} has been OutOfSync for more than 5 minutes."
+
+                - alert: ArgoCDAppDegraded
+                  expr: argocd_app_info{health_status="Degraded"} == 1
+                  for: 10m
+                  labels:
+                    severity: warning
+                    component: argocd
+                  annotations:
+                    summary: "ArgoCD app degraded: {{ "{{" }} $labels.name {{ "}}" }}"
+                    description: "Application {{ "{{" }} $labels.name {{ "}}" }} health is Degraded for more than 10 minutes."
+
+                - alert: ArgoCDAppMissing
+                  expr: argocd_app_info{health_status="Missing"} == 1
+                  for: 5m
+                  labels:
+                    severity: critical
+                    component: argocd
+                  annotations:
+                    summary: "ArgoCD app missing: {{ "{{" }} $labels.name {{ "}}" }}"
+                    description: "Application {{ "{{" }} $labels.name {{ "}}" }} has resources in Missing state."
+
+        deployment-alerts:
+          groups:
+            - name: deployment.rules
+              rules:
+                - alert: DeploymentReplicasMismatch
+                  expr: kube_deployment_spec_replicas != kube_deployment_status_available_replicas
+                  for: 10m
+                  labels:
+                    severity: warning
+                    component: deployment
+                  annotations:
+                    summary: "Deployment replicas mismatch: {{ "{{" }} $labels.deployment {{ "}}" }}"
+                    description: "Deployment {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.deployment {{ "}}" }} has desired != available replicas for 10m."
+
+                - alert: PodCrashLooping
+                  expr: rate(kube_pod_container_status_restarts_total[10m]) * 600 > 5
+                  for: 5m
+                  labels:
+                    severity: critical
+                    component: pod
+                  annotations:
+                    summary: "Pod crash looping: {{ "{{" }} $labels.pod {{ "}}" }}"
+                    description: "Pod {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.pod {{ "}}" }} has restarted more than 5 times in 10 minutes."
+
+                - alert: PodNotReady
+                  expr: kube_pod_status_ready{condition="true"} == 0
+                  for: 10m
+                  labels:
+                    severity: warning
+                    component: pod
+                  annotations:
+                    summary: "Pod not ready: {{ "{{" }} $labels.pod {{ "}}" }}"
+
+        cluster-alerts:
+          groups:
+            - name: cluster.rules
+              rules:
+                - alert: NodeNotReady
+                  expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+                  for: 5m
+                  labels:
+                    severity: critical
+                    component: node
+                  annotations:
+                    summary: "Node not ready: {{ "{{" }} $labels.node {{ "}}" }}"
+                    description: "Kubernetes node {{ "{{" }} $labels.node {{ "}}" }} has been NotReady for 5 minutes."
+
+                - alert: HighNodeMemoryUsage
+                  expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+                  for: 5m
+                  labels:
+                    severity: warning
+                    component: node
+                  annotations:
+                    summary: "High memory usage on {{ "{{" }} $labels.instance {{ "}}" }}"
+                    description: "Node memory usage is above 90% for 5 minutes."
+
+                - alert: HighNodeCPUUsage
+                  expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+                  for: 5m
+                  labels:
+                    severity: warning
+                    component: node
+                  annotations:
+                    summary: "High CPU usage on {{ "{{" }} $labels.instance {{ "}}" }}"
+                    description: "Node CPU usage is above 85% for 5 minutes."
+
+                - alert: PVCAlmostFull
+                  expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100 > 85
+                  for: 10m
+                  labels:
+                    severity: warning
+                    component: storage
+                  annotations:
+                    summary: "PVC almost full: {{ "{{" }} $labels.persistentvolumeclaim {{ "}}" }}"
+                    description: "PVC {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.persistentvolumeclaim {{ "}}" }} is over 85% capacity."
+
+    # ---- Grafana ----
+    grafana:
+      enabled: true
+      adminUser: admin
+      adminPassword: grafana-admin
+      persistence:
+        enabled: true
+        storageClassName: ebs-sc
+        size: 5Gi
+
+      # OIDC via Keycloak
+      grafana.ini:
+        server:
+          root_url: "https://grafana.{{ .Values.global.domain }}"
+        auth.generic_oauth:
+          enabled: true
+          name: Keycloak
+          allow_sign_up: true
+          client_id: grafana
+          client_secret: grafana-oidc-secret
+          scopes: openid profile email groups
+          auth_url: "https://keycloak.{{ .Values.global.domain }}/realms/devops-platform/protocol/openid-connect/auth"
+          token_url: "https://keycloak.{{ .Values.global.domain }}/realms/devops-platform/protocol/openid-connect/token"
+          api_url: "https://keycloak.{{ .Values.global.domain }}/realms/devops-platform/protocol/openid-connect/userinfo"
+          role_attribute_path: "contains(groups[*], 'platform-admins') && 'Admin' || contains(groups[*], 'developers') && 'Editor' || 'Viewer'"
+          role_attribute_strict: true
+
+      # Pre-provisioned datasources
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki:3100
+          isDefault: false
+          jsonData:
+            maxLines: 1000
+
+      # Sidecar for dashboard auto-discovery
+      sidecar:
+        dashboards:
+          enabled: true
+          label: grafana_dashboard
+          searchNamespace: ALL
+
+    # ---- Alertmanager ----
+    alertmanager:
+      enabled: true
+      alertmanagerSpec:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      config:
+        global:
+          resolve_timeout: 5m
+        receivers:
+          - name: "null"
+          - name: email-alerts
+            email_configs:
+              - to: "{{ .Values.alerting.email.to }}"
+                from: "{{ .Values.alerting.email.from }}"
+                smarthost: "{{ .Values.alerting.email.smarthost }}"
+                auth_username: "{{ .Values.alerting.email.username }}"
+                auth_password: "{{ .Values.alerting.email.password }}"
+                require_tls: true
+                send_resolved: true
+                headers:
+                  subject: '{{ "{{" }} template "email.default.subject" . {{ "}}" }}'
+        route:
+          group_by: ['alertname', 'namespace', 'severity']
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+          receiver: email-alerts
+          routes:
+            - match:
+                severity: critical
+              receiver: email-alerts
+              repeat_interval: 1h
+            - match:
+                severity: warning
+              receiver: email-alerts
+              repeat_interval: 4h
+            - match:
+                alertname: Watchdog
+              receiver: "null"
+
+    # ---- Node Exporter ----
+    nodeExporter:
+      enabled: true
+
+    # ---- kube-state-metrics ----
+    kubeStateMetrics:
+      enabled: true
+
+    # ---- Default Rules ----
+    defaultRules:
+      create: true
+      rules:
+        alertmanager: true
+        etcd: true
+        general: true
+        k8s: true
+        kubeApiserver: true
+        kubeApiserverAvailability: true
+        kubeApiserverSlos: true
+        kubelet: true
+        kubePrometheusGeneral: true
+        kubePrometheusNodeRecording: true
+        kubernetesApps: true
+        kubernetesResources: true
+        kubernetesStorage: true
+        kubernetesSystem: true
+        kubeScheduler: true
+        network: true
+        node: true
+        prometheus: true

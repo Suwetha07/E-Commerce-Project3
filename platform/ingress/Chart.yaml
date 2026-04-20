@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-ingress
+description: HAProxy Ingress Controller + cert-manager for TLS termination and domain routing
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

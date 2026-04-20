@@ -1,0 +1,48 @@
+# =============================================================
+# Application Ingress - app.example.com + api.example.com
+# Routes frontend traffic and API traffic separately
+# =============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: {{ .Values.ingress.app.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.haproxy.controller.ingressClass }}
+    cert-manager.io/cluster-issuer: {{ .Values.global.clusterIssuer }}
+    haproxy.org/ssl-redirect: "true"
+    haproxy.org/cors-enable: "true"
+    haproxy.org/cors-allow-origin: "https://{{ .Values.ingress.app.host }}"
+    haproxy.org/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    haproxy.org/cors-allow-headers: "Content-Type, Authorization, X-Requested-With"
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.app.host }}
+      secretName: app-tls
+    - hosts:
+        - {{ .Values.ingress.api.host }}
+      secretName: api-tls
+  rules:
+    # ---- Frontend UI ----
+    - host: {{ .Values.ingress.app.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ingress.app.service }}
+                port:
+                  number: {{ .Values.ingress.app.port }}
+    # ---- API Gateway ----
+    - host: {{ .Values.ingress.api.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ingress.api.service }}
+                port:
+                  number: {{ .Values.ingress.api.port }}

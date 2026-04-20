@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-keycloak
+description: Keycloak OIDC Identity Provider for centralized authentication and RBAC
+type: application
+version: 0.1.0
+appVersion: "24.0"

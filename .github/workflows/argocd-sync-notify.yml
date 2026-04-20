@@ -1,0 +1,114 @@
+# =============================================================
+# ArgoCD Sync Notification Workflow
+# Sends email alerts when ArgoCD sync events occur
+# Triggered via webhook from ArgoCD notifications
+# =============================================================
+name: ArgoCD Sync Notifications
+
+on:
+  repository_dispatch:
+    types:
+      - argocd-sync-success
+      - argocd-sync-failed
+      - argocd-health-degraded
+  workflow_dispatch:
+    inputs:
+      event_type:
+        description: "Event type (sync-success, sync-failed, health-degraded)"
+        required: true
+        type: choice
+        options:
+          - sync-success
+          - sync-failed
+          - health-degraded
+      app_name:
+        description: "Application name"
+        required: true
+        type: string
+
+jobs:
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine event details
+        id: event
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "TYPE=${{ github.event.action }}" >> $GITHUB_OUTPUT
+            echo "APP=${{ github.event.client_payload.app_name }}" >> $GITHUB_OUTPUT
+            echo "STATUS=${{ github.event.client_payload.sync_status }}" >> $GITHUB_OUTPUT
+            echo "HEALTH=${{ github.event.client_payload.health_status }}" >> $GITHUB_OUTPUT
+            echo "REVISION=${{ github.event.client_payload.revision }}" >> $GITHUB_OUTPUT
+          else
+            echo "TYPE=${{ github.event.inputs.event_type }}" >> $GITHUB_OUTPUT
+            echo "APP=${{ github.event.inputs.app_name }}" >> $GITHUB_OUTPUT
+            echo "STATUS=manual-trigger" >> $GITHUB_OUTPUT
+            echo "HEALTH=unknown" >> $GITHUB_OUTPUT
+            echo "REVISION=N/A" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send success email
+        if: steps.event.outputs.TYPE == 'argocd-sync-success' || steps.event.outputs.TYPE == 'sync-success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "✅ ArgoCD Sync Succeeded: ${{ steps.event.outputs.APP }}"
+          to: ${{ secrets.EMAIL_RECIPIENTS }}
+          from: "ArgoCD Notifications <noreply@github.com>"
+          body: |
+            ArgoCD Deployment Sync Succeeded!
+
+            Application: ${{ steps.event.outputs.APP }}
+            Sync Status: ${{ steps.event.outputs.STATUS }}
+            Health: ${{ steps.event.outputs.HEALTH }}
+            Revision: ${{ steps.event.outputs.REVISION }}
+            Time: ${{ github.event.client_payload.timestamp || 'N/A' }}
+
+            Dashboard: https://argocd.example.com/applications/${{ steps.event.outputs.APP }}
+
+      - name: Send failure email
+        if: steps.event.outputs.TYPE == 'argocd-sync-failed' || steps.event.outputs.TYPE == 'sync-failed'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "❌ ArgoCD Sync FAILED: ${{ steps.event.outputs.APP }}"
+          to: ${{ secrets.EMAIL_RECIPIENTS }}
+          from: "ArgoCD Notifications <noreply@github.com>"
+          body: |
+            ⚠️ ArgoCD Deployment Sync FAILED!
+
+            Application: ${{ steps.event.outputs.APP }}
+            Sync Status: ${{ steps.event.outputs.STATUS }}
+            Health: ${{ steps.event.outputs.HEALTH }}
+            Error: ${{ github.event.client_payload.message || 'Unknown' }}
+
+            Action Required: Check the ArgoCD dashboard immediately.
+            Dashboard: https://argocd.example.com/applications/${{ steps.event.outputs.APP }}
+
+      - name: Send degraded health email
+        if: steps.event.outputs.TYPE == 'argocd-health-degraded' || steps.event.outputs.TYPE == 'health-degraded'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "⚠️ ArgoCD App Degraded: ${{ steps.event.outputs.APP }}"
+          to: ${{ secrets.EMAIL_RECIPIENTS }}
+          from: "ArgoCD Notifications <noreply@github.com>"
+          body: |
+            ⚠️ Application Health Degraded!
+
+            Application: ${{ steps.event.outputs.APP }}
+            Health Status: ${{ steps.event.outputs.HEALTH }}
+            Sync Status: ${{ steps.event.outputs.STATUS }}
+
+            Investigate the application health status in the ArgoCD dashboard.
+            Dashboard: https://argocd.example.com/applications/${{ steps.event.outputs.APP }}

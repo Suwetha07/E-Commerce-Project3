@@ -1,0 +1,62 @@
+# =============================================================
+# STAGING Environment - Values Override
+# =============================================================
+# - Moderate replicas matching production-like setup
+# - Rollouts enabled (Blue-Green) for frontend
+# - Manual promotion required for staging validation
+# =============================================================
+global:
+  namespace: "clahanstore-staging"
+
+frontend-ui:
+  replicas: 2
+  image:
+    repository: "team4devops/ecommerce-frontend-ui"
+    tag: "latest"
+  rollouts:
+    enabled: true
+    strategy: blueGreen
+    autoPromotionEnabled: false   # Manual promotion for staging validation
+
+api-gateway:
+  replicas: 2
+user-service:
+  replicas: 1
+auth-service:
+  replicas: 2
+product-service:
+  replicas: 2
+search-service:
+  replicas: 1
+inventory-service:
+  replicas: 1
+cart-service:
+  replicas: 1
+wishlist-service:
+  replicas: 1
+order-service:
+  replicas: 1
+payment-service:
+  replicas: 1
+invoice-service:
+  replicas: 1
+shipping-service:
+  replicas: 1
+review-rating-service:
+  replicas: 1
+recommendation-service:
+  replicas: 1
+admin-service:
+  replicas: 1
+mongodb:
+  replicas: 1
+
+storageClass:
+  ebs:
+    enabled: true
+    name: "ebs-sc"
+    isDefault: "true"
+    provisioner: "ebs.csi.aws.com"
+    volumeBindingMode: "WaitForFirstConsumer"
+    parameters:
+      type: "gp3"

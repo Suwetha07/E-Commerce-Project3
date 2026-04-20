@@ -1,0 +1,46 @@
+# =============================================================
+# cert-manager Installation Values
+# Helm chart: jetstack/cert-manager
+# Install: helm install cert-manager jetstack/cert-manager -n cert-manager -f this-file.yaml
+# =============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-manager-install-values
+  namespace: {{ .Values.certManager.namespace }}
+  annotations:
+    helm.sh/chart: "jetstack/cert-manager"
+    meta.helm.sh/release-name: "cert-manager"
+data:
+  values.yaml: |
+    installCRDs: {{ .Values.certManager.installCRDs }}
+
+    replicaCount: 1
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+    webhook:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+
+    cainjector:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+
+    prometheus:
+      enabled: true
+      servicemonitor:
+        enabled: true
+        namespace: monitoring

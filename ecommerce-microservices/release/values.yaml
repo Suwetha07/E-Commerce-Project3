@@ -10,6 +10,10 @@ frontend-ui:
   image:
     repository: "team4devops/ecommerce-frontend-ui"
     tag: "v1.0.0"
+  rollouts:
+    enabled: false                # Set to true in environment overrides
+    strategy: blueGreen
+    autoPromotionEnabled: false
 user-service:
   replicas: 1
   image:

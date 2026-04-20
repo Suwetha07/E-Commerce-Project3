@@ -1,0 +1,117 @@
+# =============================================================
+# Frontend UI - Argo Rollout (Blue-Green Strategy)
+# Replaces the standard Deployment for progressive delivery.
+# =============================================================
+# Blue-Green:
+#   - activeService:  receives production traffic
+#   - previewService: receives preview (new version) traffic
+#   - autoPromotionEnabled: false → manual promotion required
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend-ui
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: frontend-ui
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/managed-by: argo-rollouts
+spec:
+  replicas: {{ .Values.frontend_ui.replicas | default 2 }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: frontend-ui
+  template:
+    metadata:
+      labels:
+        app: frontend-ui
+    spec:
+      containers:
+        - name: frontend-ui
+          image: "{{ .Values.frontend_ui.image.repository }}:{{ .Values.frontend_ui.image.tag }}"
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+  strategy:
+    blueGreen:
+      # Service that receives live/production traffic
+      activeService: frontend-ui-active
+      # Service for the preview (new) version
+      previewService: frontend-ui-preview
+      # Manual promotion required (set to true for auto-promote)
+      autoPromotionEnabled: false
+      # Seconds to wait before scaling down old ReplicaSet
+      scaleDownDelaySeconds: 30
+      # Keep the preview available for promotion
+      previewReplicaCount: 1
+      # Pre-promotion analysis: verify new version health before promoting
+      prePromotionAnalysis:
+        templates:
+          - templateName: frontend-health-check
+        args:
+          - name: service-name
+            value: frontend-ui-preview
+---
+# =============================================================
+# AnalysisTemplate: Health Check for Frontend
+# Runs before promotion to verify the new version is healthy
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-health-check
+  namespace: {{ .Values.global.namespace }}
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: http-success-rate
+      interval: 10s
+      count: 3
+      successCondition: result == "true"
+      failureLimit: 1
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: health-check
+                    image: curlimages/curl:8.5.0
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://{{`{{args.service-name}}`}}:80/)
+                        if [ "$STATUS" = "200" ]; then
+                          echo "true"
+                        else
+                          echo "false"
+                          exit 1
+                        fi

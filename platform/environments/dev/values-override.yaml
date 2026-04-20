@@ -1,0 +1,62 @@
+# =============================================================
+# DEV Environment - Values Override
+# =============================================================
+# - Minimal replicas for cost efficiency
+# - Rollouts enabled (Blue-Green) for frontend
+# - Auto-sync enabled via ArgoCD
+# =============================================================
+global:
+  namespace: "clahanstore-dev"
+
+frontend-ui:
+  replicas: 1
+  image:
+    repository: "team4devops/ecommerce-frontend-ui"
+    tag: "latest"
+  rollouts:
+    enabled: true
+    strategy: blueGreen
+    autoPromotionEnabled: true    # Auto-promote in dev for fast iteration
+
+api-gateway:
+  replicas: 1
+user-service:
+  replicas: 1
+auth-service:
+  replicas: 1
+product-service:
+  replicas: 1
+search-service:
+  replicas: 1
+inventory-service:
+  replicas: 1
+cart-service:
+  replicas: 1
+wishlist-service:
+  replicas: 1
+order-service:
+  replicas: 1
+payment-service:
+  replicas: 1
+invoice-service:
+  replicas: 1
+shipping-service:
+  replicas: 1
+review-rating-service:
+  replicas: 1
+recommendation-service:
+  replicas: 1
+admin-service:
+  replicas: 1
+mongodb:
+  replicas: 1
+
+storageClass:
+  ebs:
+    enabled: true
+    name: "ebs-sc"
+    isDefault: "true"
+    provisioner: "ebs.csi.aws.com"
+    volumeBindingMode: "WaitForFirstConsumer"
+    parameters:
+      type: "gp3"

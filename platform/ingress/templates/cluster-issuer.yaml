@@ -1,0 +1,37 @@
+# =============================================================
+# ClusterIssuer - Let's Encrypt Production
+# Automatically provisions TLS certificates for all Ingress
+# resources annotated with cert-manager.io/cluster-issuer
+# =============================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.global.clusterIssuer }}
+spec:
+  acme:
+    server: {{ .Values.certManager.acme.server }}
+    email: {{ .Values.certManager.acme.email }}
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.haproxy.controller.ingressClass }}
+---
+# =============================================================
+# ClusterIssuer - Let's Encrypt Staging (for testing)
+# =============================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: {{ .Values.certManager.acme.email }}
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.haproxy.controller.ingressClass }}

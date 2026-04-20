@@ -1,0 +1,28 @@
+# =============================================================
+# Platform Component: Keycloak
+# =============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-keycloak
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: "https://github.com/M-VIGNESH3/E-Commerce-Project.git"
+    targetRevision: feature/argo-blue-green
+    path: platform/keycloak
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: keycloak
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
