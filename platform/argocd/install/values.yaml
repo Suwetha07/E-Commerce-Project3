@@ -11,6 +11,11 @@ global:
   domain: "example.com"
 
 server:
+  service:
+    type: NodePort
+    nodePortHttp: 31172
+    # Insecure mode is on, so we only need HTTP port
+
   # -- TLS is terminated at HAProxy ingress, ArgoCD runs in insecure mode
   extraArgs:
     - --insecure
