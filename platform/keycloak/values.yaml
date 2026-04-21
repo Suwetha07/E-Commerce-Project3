@@ -95,9 +95,7 @@ postgres:
   database: "keycloak"
   user: "keycloak"
   password: "keycloakdbpass"        # CHANGE IN PRODUCTION
-  storage:
-    size: "2Gi"
-    storageClass: "csi-standard"
+
   resources:
     requests:
       cpu: 50m

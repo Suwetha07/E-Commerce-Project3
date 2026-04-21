@@ -52,12 +52,4 @@ admin-service:
 mongodb:
   replicas: 1
 
-storageClass:
-  ebs:
-    enabled: true
-    name: "csi-standard"
-    isDefault: "true"
-    provisioner: "ebs.csi.aws.com"
-    volumeBindingMode: "WaitForFirstConsumer"
-    parameters:
-      type: "gp3"
+
