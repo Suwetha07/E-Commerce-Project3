@@ -1,4 +1,4 @@
-{{- if not (index .Values "frontend-ui" "rollouts" "enabled" | default false) }}
+{{- if (.Values.rollouts.enabled | default false) }}
 apiVersion: v1
 kind: Service
 metadata:
