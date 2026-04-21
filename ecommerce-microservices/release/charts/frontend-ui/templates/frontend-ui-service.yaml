@@ -1,14 +1,13 @@
-{{- if (.Values.rollouts.enabled | default false) }}
+{{- if not (.Values.rollouts.enabled | default false) }}
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-ui
-  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: frontend-ui
   ports:
-  - port: 80
-    targetPort: 80
+    - port: 80
+      targetPort: 80
   type: ClusterIP
 {{- end }}
